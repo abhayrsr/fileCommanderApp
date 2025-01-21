@@ -1,4 +1,4 @@
-const { watch, open, stat, unlink , rename} = require("node:fs/promises");
+const { watch, open, stat, unlink , rename, copyFile, constants} = require("node:fs/promises");
 
 (async () => {
   const createFile = async (path) => {
@@ -40,10 +40,24 @@ const { watch, open, stat, unlink , rename} = require("node:fs/promises");
     }
   }
 
+  const addToFile = async(oldPath, newPath) => {
+    try{
+      const existingFileHandle = await open(oldPath, "r");
+      if(existingFileHandle){
+        await copyFile(oldPath, newPath, constants.COPYFILE_EXCL);
+        console.log(`Added to file ${newPath}`);
+      }
+      existingFileHandle.close();
+    } catch(e){
+      console.log(e, `Error while adding to the ${newPath}`)
+    }
+  }
+
   const commandFileHandler = await open("./command.txt", "r");
   const CREATE_FILE = "create a file";
   const DELETE_FILE = "delete the file";
   const RENAME_FILE = "rename the file";
+  const ADD_TO_FILE = "add to file";
   try {
     commandFileHandler.on("change", async () => {
 
@@ -69,6 +83,12 @@ const { watch, open, stat, unlink , rename} = require("node:fs/promises");
         const oldFilePath = command.slice(RENAME_FILE.length + 1, RENAME_FILE.length + 13);
         const newFilePath = command.substring(RENAME_FILE.length + 17);
         renameFile(oldFilePath, newFilePath);
+      }
+
+      if(command.includes(ADD_TO_FILE)){
+        const oldFilePath = command.slice(ADD_TO_FILE.length + 1, ADD_TO_FILE.length + 9);
+        const newFilePath = command.substring(ADD_TO_FILE.length + 12);
+        addToFile(oldFilePath, newFilePath);
       }
       
     });
